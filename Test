@@ -14,12 +14,14 @@
   .icon { font-size:1.5em; margin-right:15px; }
   .content h3 { margin:0; font-size:1.1em; }
   .content p { margin:3px 0 0; font-size:0.95em; color:#555; }
+  .archive-button { display:block; margin: 20px auto; padding:10px 20px; font-size:1em; background:#007BFF; color:#fff; border:none; border-radius:5px; cursor:pointer; text-decoration:none; text-align:center; }
+  .archive-button:hover { background:#0056b3; }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>Friday, October 31, 2025</h1>
+  <h1 id="date-header">Loading...</h1>
 </div>
 
 <div class="section" id="focus-section">
@@ -30,24 +32,61 @@
   <h2>Next</h2>
 </div>
 
-<script>
-  // Example data from your spreadsheet
-  const data = [
-    {section:"focus", icon:"📝", title:"Student Feedback Sessions", description:"Share your thoughts on the previous units and pacing."},
-    {section:"focus", icon:"💸", title:"Economic Challenges & Solutions", description:"Deep dive into The Panic of 1819 and The American System."},
-    {section:"focus", icon:"✅", title:"Formative Assessments", description:"Complete and review sections 4.3, 4.4, and 4.5."},
-    {section:"next", icon:"⭐", title:"AP Classroom Quizzes", description:"Start with a short quiz to gauge understanding."},
-    {section:"next", icon:"💬", title:"The Rise of Andrew Jackson I", description:"Discussion on the early life and political ascent of Jackson."}
-  ];
+<a href="#" class="archive-button" id="archive-button">View Archived Agendas</a>
 
-  data.forEach(item => {
-    const container = document.getElementById(item.section + "-section");
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `<div class="icon">${item.icon}</div>
-                     <div class="content"><h3>${item.title}</h3><p>${item.description}</p></div>`;
-    container.appendChild(div);
-  });
+<script>
+  const SHEET_ID = "YOUR_SHEET_ID_HERE"; // Replace with your sheet ID
+  const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+  fetch(SHEET_URL)
+    .then(res => res.text())
+    .then(data => {
+      const json = JSON.parse(data.substring(47, data.length - 2));
+      const rows = json.table.rows;
+
+      let focusItems = [];
+      let nextItems = [];
+      let headerText = "";
+
+      rows.forEach((row, index) => {
+        // Skip the first row (column headers)
+        if (index === 0) return;
+
+        const section = row.c[1] ? row.c[1].v.toLowerCase() : "";
+        const icon = row.c[2] ? row.c[2].v : "";
+        const title = row.c[3] ? row.c[3].v : "";
+        const description = row.c[4] ? row.c[4].v : "";
+        const header = row.c[5] ? row.c[5].v : "";
+
+        if (section === "header" && header) {
+          headerText = header;
+        } else if(section === "focus") {
+          focusItems.push({icon, title, description});
+        } else if(section === "next") {
+          nextItems.push({icon, title, description});
+        }
+      });
+
+      document.getElementById("date-header").textContent = headerText || "Today's Agenda";
+
+      const renderItems = (items, sectionId) => {
+        const container = document.getElementById(sectionId);
+        items.forEach(item => {
+          const div = document.createElement("div");
+          div.className = "item";
+          div.innerHTML = `<div class="icon">${item.icon}</div>
+                           <div class="content"><h3>${item.title}</h3><p>${item.description}</p></div>`;
+          container.appendChild(div);
+        });
+      };
+
+      renderItems(focusItems, "focus-section");
+      renderItems(nextItems, "next-section");
+
+      // Archive button link
+      document.getElementById("archive-button").href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit#gid=0`; 
+    })
+    .catch(err => console.error("Error loading sheet:", err));
 </script>
 
 </body>
